@@ -37,10 +37,10 @@ int main(int argc, const char *argv[]) {
         }
 
         if (result.count("l")) {
-            learning_rate = result["l"].as<double>();
+            learning_rate = result["l"].as<float>();
         }
         if (result.count("r")) {
-            regularization_const = result["r"].as<double>();
+            regularization_const = result["r"].as<float>();
         }
         if (result.count("i")) {
             iterations = result["i"].as<int>();
