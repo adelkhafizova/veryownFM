@@ -10,6 +10,7 @@
 #include <fstream>
 #include <climits>
 
+
 enum learning_method {
     SGD = 1,
     ALS
@@ -53,6 +54,14 @@ public:
 #endif
         }
         std::cout << _data.size() << " " << _target.size() << std::endl;
+        _feature_objects = std::vector<std::vector<int> >(_max_feature + 1, std::vector<int>());
+        for (int i = 0; i < _data.size(); ++i) {
+            auto row = _data.at(i);
+            for (auto it = row.begin(); it != row.end(); ++it) {
+                _feature_objects.at(it->first).push_back(i);
+            }
+        }
+
     };
     const std::map<int, float> & get_row(int i) const {
         return _data.at(i);
@@ -75,8 +84,12 @@ public:
     }
 
     const float & get_target(int i) const {
-        return _target[i];
+        return _target.at(i);
     };
+
+    const std::vector<int> & get_feature_objects(int l) const {
+        return _feature_objects.at(l);
+    }
 
 private:
     std::vector<std::map<int, float> > _data;
@@ -84,4 +97,5 @@ private:
     int _max_feature = 0;
     float _max_target = INT64_MIN;
     float _min_target = INT64_MAX;
+    std::vector<std::vector<int> > _feature_objects;
 };

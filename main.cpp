@@ -6,12 +6,15 @@
 
 int main(int argc, const char *argv[]) {
     float learning_rate = 0.1;
-    float regularization_const = 0;
-    int iterations = 30;
+    std::string regularization_const;
+    int iterations = 10;
     learning_method method = SGD;
     std::string train_filename;
     std::string test_filename;
     std::string out_filename;
+    bool use_bias = true;
+    bool use_linear = true;
+    int pairwise_dim = 2;
     task_type type;
     try {
         cxxopts::Options options("Factorization machines", "Library for using factorization algorithm");
@@ -20,7 +23,7 @@ int main(int argc, const char *argv[]) {
                 .show_positional_help();
         options.add_options()
                 ("l,learning_rate", "Learning rate value, default 0.1", cxxopts::value<float>())
-                ("r,regularization_const", "Regularization constant, default 0", cxxopts::value<float>())
+                ("r,regularization_const", "Regularization constant, default 0", cxxopts::value<std::string>())
                 ("i,iterations", "Number of iterations, default 100", cxxopts::value<int>())
                 ("m,learning_method", "Learning method (SGD, ALS), default SGD", cxxopts::value<std::string>())
                 ("t,train_filename", "Training file name", cxxopts::value<std::string>())
@@ -40,7 +43,7 @@ int main(int argc, const char *argv[]) {
             learning_rate = result["l"].as<float>();
         }
         if (result.count("r")) {
-            regularization_const = result["r"].as<float>();
+            regularization_const = result["r"].as<std::string>();
         }
         if (result.count("i")) {
             iterations = result["i"].as<int>();
@@ -91,11 +94,12 @@ int main(int argc, const char *argv[]) {
     }
     Dataset train_dataset(train_filename);
     Dataset test_dataset(test_filename);
-    int max_feature = std::max(train_dataset.get_max_feature(), test_dataset.get_max_feature());
+    int max_feature = train_dataset.get_max_feature();
+    std::cout << learning_rate << std::endl;
     FactorizationMachine factorizationMachine(learning_rate, regularization_const,
                                               iterations, method, type, max_feature,
-                                              std::max(train_dataset.get_max_target(), test_dataset.get_max_target()),
-                                              std::min(train_dataset.get_min_target(), test_dataset.get_min_target()));
+                                              train_dataset.get_max_target(),
+                                              train_dataset.get_min_target());
     factorizationMachine.launch_learning(train_dataset, test_dataset);
     return 0;
 }
