@@ -37,12 +37,12 @@ public:
         _linear_vx_sum = std::vector<double> (_k_2, 0.0);
     };
 
-    void learn_step(const Dataset &train_data, const Dataset &test_data, int iteration) {
+    void learn_step(Dataset &train_data, Dataset &test_data, int iteration) {
         if (_learning_method == SGD) {
             for (int i = 0; i < train_data.size(); ++i) {
-                double y_hat = predict(train_data, i);
-                double target = (double)train_data.get_target(i);
-                auto row = train_data.get_row(i);
+                double y_hat = predict(train_data);
+                double target = (double)train_data.get_target();
+                auto row = train_data.get_row();
                 double coefficient = 0;
                 if (_task_type == classification) {
                     coefficient = (1 / (1 + exp(target * y_hat)) - 1) * target;
@@ -50,15 +50,16 @@ public:
                     coefficient = (y_hat - target);
                 }
                 sgd_step(row, coefficient);
+                train_data.next_row();
             }
         } else {
             double _errors_sum = 0.0;
             double _x_square = 0.0;
             for (int i = 0; i < train_data.size(); ++i) {
-                double y_hat = predict(train_data, i);
-                _errors.at(i) = (double)train_data.get_target(i) - y_hat;
+                double y_hat = predict(train_data);
+                _errors.at(i) = (double)train_data.get_target() - y_hat;
                 _errors_sum += _errors.at(i);
-                auto row = train_data.get_row(i);
+                auto row = train_data.get_row();
 
                 for (int f = 0; f < _k_2; f++) {
                     _cache.at(i).at(f) = 0.0;
@@ -66,6 +67,7 @@ public:
                         _cache.at(i).at(f) += _v.at(it->first).at(f)*it->second;
                     }
                 }
+                train_data.next_row();
             }
             als_step(train_data, _errors_sum);
         }
@@ -75,9 +77,9 @@ public:
         return;
     }
 
-    double predict(const Dataset &train_data, int i) {
+    double predict(const Dataset &train_data) {
         float y_hat = 0.0;
-        const std::map<int, float> row = train_data.get_row(i);
+        const std::map<int, float> row = train_data.get_row();
 
         for (int f = 0; f < _k_2; f++) {
             _linear_vx_sum.at(f) = 0.0;
@@ -147,7 +149,7 @@ public:
             double x_l_square = 0.0;
             const std::vector <int> &valid_objects = train_data.get_feature_objects(l);
             for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
-                const std::map<int, float> row = train_data.get_row(*it);
+                const std::map<int, float> row = train_data.get_row();
                 auto element = row.find(l);
                 _w_l_star += element->second * (_w.at(l) * element->second - _errors.at(*it));
                 x_l_square += element->second*element->second;
@@ -155,24 +157,25 @@ public:
             _w_l_star /= x_l_square + _reg_w;
             delta += _w_l_star;
             for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
-                const std::map<int, float> row = train_data.get_row(*it);
+                const std::map<int, float> row = train_data.get_row();
                 auto element = row.find(l);
                 _errors.at(*it) += delta * element->second;
             }
         }
     }
 
-    double evaluate(const Dataset &data) {
+    double evaluate(Dataset &data) {
         double error = 0.0;
         for (int i = 0; i < data.size(); ++i) {
-            double y_hat = predict(data, i);
-            double target = (double) data.get_target(i);
+            double y_hat = predict(data);
+            double target = (double) data.get_target();
             if (_task_type == classification) {
                 //TODO: check that this function is the correct way to measure
                 error += -target*log(y_hat) - (1 - target)*log(1 - y_hat);
             } else {
                 error += pow(y_hat - target, 2);
             }
+            data.next_row();
         }
         if (_task_type == classification) {
             return error/data.size();
@@ -181,7 +184,7 @@ public:
         }
     }
 
-    void launch_learning(const Dataset & train_data, const Dataset & test_data) {
+    void launch_learning(Dataset & train_data, Dataset & test_data) {
         if (_learning_method == ALS) {
             _errors = std::vector<double> (train_data.size(), 0.0);
             _cache = std::vector<std::vector<double> >(train_data.size(), std::vector<double>(_k_2, 0.0));
