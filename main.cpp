@@ -106,22 +106,22 @@ int main(int argc, const char *argv[]) {
         exit(1);
     }
 
-    Dataset train_dataset = Dataset();
-    Dataset test_dataset = Dataset();
+    Dataset *train_dataset;
+    Dataset *test_dataset;
     if (storage_type == memory){
-        train_dataset = MemoryDataset(train_filename);
-        test_dataset = MemoryDataset(test_filename);
+        train_dataset = new MemoryDataset(train_filename);;
+        test_dataset  = new MemoryDataset(test_filename);;
     } else {
-        train_dataset = IterDataset(train_filename);
-        test_dataset = IterDataset(test_filename);
+        train_dataset = new IterDataset(train_filename);
+        test_dataset  = new IterDataset(test_filename);
     }
 
-    int max_feature = train_dataset.get_max_feature();
+    int max_feature = train_dataset->get_max_feature();
     std::cout << learning_rate << std::endl;
     FactorizationMachine factorizationMachine(learning_rate, regularization_const,
                                               iterations, method, type, max_feature,
-                                              train_dataset.get_max_target(),
-                                              train_dataset.get_min_target());
-    factorizationMachine.launch_learning(train_dataset, test_dataset);
+                                              train_dataset->get_max_target(),
+                                              train_dataset->get_min_target());
+    factorizationMachine.launch_learning(*train_dataset, *test_dataset);
     return 0;
 }
