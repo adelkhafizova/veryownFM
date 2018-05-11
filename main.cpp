@@ -122,6 +122,9 @@ int main(int argc, const char *argv[]) {
                                               iterations, method, type, max_feature,
                                               train_dataset->get_max_target(),
                                               train_dataset->get_min_target());
+
     factorizationMachine.launch_learning(*train_dataset, *test_dataset);
+    delete train_dataset;
+    delete test_dataset;
     return 0;
 }
