@@ -88,6 +88,9 @@ public:
                 sum_of_squared += sum_element*sum_element;
             }
             y_hat += _linear_vx_sum.at(f)*_linear_vx_sum.at(f) - sum_of_squared;
+            /*if (_learning_method == ALS && first_traverse) {
+                _cache.at(i).at(f) = _linear_vx_sum.at(f);
+            }*/
         }
         y_hat *= 0.5;
 
@@ -154,10 +157,35 @@ public:
             }
             _w_l_star /= x_l_square + _reg_w;
             delta += _w_l_star;
+            _w.at(l) = _w_l_star;
             for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
                 const std::map<int, float> row = train_data.get_row(*it);
                 auto element = row.find(l);
                 _errors.at(*it) += delta * element->second;
+            }
+        }
+        for (int l = 0; l < _max_feature + 1; ++l) {
+            for (int f = 0; f < _k_2; ++f) {
+                double delta = -_v.at(l).at(f);
+                double _v_star = 0.0;
+                double h_square = 0.0;
+                const std::vector <int> &valid_objects = train_data.get_feature_objects(l);
+                for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
+                    const std::map<int, float> row = train_data.get_row(*it);
+                    auto element = row.find(l);
+                    double h = element->second*(_cache.at(*it).at(f) - _v.at(l).at(f)*element->second);
+                    _v_star += h * (_v.at(l).at(f) * h - _errors.at(*it));
+                    h_square += h*h;
+                }
+                _v_star /= h_square + _reg_v;
+                delta += _v_star;
+                _v.at(l).at(f) = _v_star;
+                for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
+                    const std::map<int, float> row = train_data.get_row(*it);
+                    auto element = row.find(l);
+                    _errors.at(*it) += delta * element->second;
+                    _cache.at(*it).at(f) += delta * element->second;
+                }
             }
         }
     }
@@ -198,7 +226,7 @@ private:
     task_type _task_type;
     bool _k_0 = true;
     bool _k_1 = true;
-    int _k_2 = 20;
+    int _k_2 = 4;
     double _w_0 = 0.0;
     int _max_feature;
     float _min_target;
@@ -211,4 +239,5 @@ private:
     std::vector<double> _linear_vx_sum;
     std::vector<double> _errors;
     std::vector<std::vector<double> > _cache;
+    bool first_traverse = true;
 };
