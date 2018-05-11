@@ -8,14 +8,15 @@ int main(int argc, const char *argv[]) {
     float learning_rate = 0.1;
     std::string regularization_const;
     int iterations = 10;
-    learning_method method = SGD;
+    LearningMethod method = SGD;
+    StorageType storage_type = memory;
     std::string train_filename;
     std::string test_filename;
     std::string out_filename;
     bool use_bias = true;
     bool use_linear = true;
     int pairwise_dim = 2;
-    task_type type;
+    TaskType type;
     try {
         cxxopts::Options options("Factorization machines", "Library for using factorization algorithm");
         options
@@ -25,11 +26,12 @@ int main(int argc, const char *argv[]) {
                 ("l,learning_rate", "Learning rate value, default 0.1", cxxopts::value<float>())
                 ("r,regularization_const", "Regularization constant, default 0", cxxopts::value<std::string>())
                 ("i,iterations", "Number of iterations, default 100", cxxopts::value<int>())
-                ("m,learning_method", "Learning method (SGD, ALS), default SGD", cxxopts::value<std::string>())
+                ("m,LearningMethod", "Learning method (SGD, ALS), default SGD", cxxopts::value<std::string>())
+                ("g,inplace", "Storage (inplace, memory), default memory", cxxopts::value<std::string>())
                 ("t,train_filename", "Training file name", cxxopts::value<std::string>())
                 ("e,test_filename", "Testing file name", cxxopts::value<std::string>())
                 ("o,out_filename", "Output file name", cxxopts::value<std::string>())
-                ("s,task_type", "Task type parameter", cxxopts::value<std::string>())
+                ("s,TaskType", "Task type parameter", cxxopts::value<std::string>())
                 ("h,help", "Usage description");
         auto result = options.parse(argc, argv);
 
@@ -56,6 +58,17 @@ int main(int argc, const char *argv[]) {
                 method = ALS;
                 } else {
                     throw cxxopts::OptionException("Bad learning method definition");
+                }
+            }
+        }
+        if (result.count("g")) {
+            if (result["g"].as<std::string>() == "inplace") {
+                storage_type = inplace;
+            } else {
+                if (result["g"].as<std::string>() == "memory") {
+                    storage_type = memory;
+                } else {
+                    throw cxxopts::OptionException("Bad storage definition");
                 }
             }
         }
@@ -92,8 +105,17 @@ int main(int argc, const char *argv[]) {
         std::cout << "error parsing options: " << e.what() << std::endl;
         exit(1);
     }
-    Dataset train_dataset(train_filename);
-    Dataset test_dataset(test_filename);
+
+    Dataset train_dataset = Dataset();
+    Dataset test_dataset = Dataset();
+    if (storage_type == memory){
+        train_dataset = MemoryDataset(train_filename);
+        test_dataset = MemoryDataset(test_filename);
+    } else {
+        train_dataset = IterDataset(train_filename);
+        test_dataset = IterDataset(test_filename);
+    }
+
     int max_feature = train_dataset.get_max_feature();
     std::cout << learning_rate << std::endl;
     FactorizationMachine factorizationMachine(learning_rate, regularization_const,

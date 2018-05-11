@@ -11,8 +11,8 @@
 
 class FactorizationMachine {
 public:
-    FactorizationMachine(float lr, const std::string &reg_const, int num_iter, const learning_method &lm,
-                         const task_type &type, int max_feature, float max_target, float min_target) {
+    FactorizationMachine(float lr, const std::string &reg_const, int num_iter, const LearningMethod &lm,
+                         const TaskType &type, int max_feature, float max_target, float min_target) {
         _learning_rate = lr;
         /*if (reg_const.size()) {
             if
@@ -197,8 +197,8 @@ public:
 private:
     float _learning_rate;
     int _iterations;
-    learning_method _learning_method;
-    task_type _task_type;
+    LearningMethod _learning_method;
+    TaskType _task_type;
     bool _k_0 = true;
     bool _k_1 = true;
     int _k_2 = 20;
