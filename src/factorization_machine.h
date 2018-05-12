@@ -29,9 +29,15 @@ public:
         std::default_random_engine generator;
         std::normal_distribution<double> distribution(0.0,0.1);
         _v = std::vector<std::vector<double> >(_max_feature + 1, std::vector<double>(_k_2, 0.0));
-        for (int i = 1; i < _max_feature + 1; ++i) {
+        std::ifstream ifs("weights");
+
+        for (int i = 0; i < _max_feature + 1; ++i) {
             for (int j = 0; j < _k_2; ++j) {
-                _v.at(i).at(j) = distribution(generator);
+                //_v.at(i).at(j) = distribution(generator);
+                double temp;
+                ifs >> temp;
+                _v.at(i).at(j) = temp;
+                //std::cout <<
             }
         }
         _linear_vx_sum = std::vector<double> (_k_2, 0.0);
@@ -53,27 +59,26 @@ public:
                 train_data.next_row();
             }
         } else {
-            double _errors_sum = 0.0;
-            double _x_square = 0.0;
-            for (int i = 0; i < train_data.size(); ++i) {
-                double y_hat = predict(train_data);
-                _errors.at(i) = (double)train_data.get_target() - y_hat;
-                _errors_sum += _errors.at(i);
-                auto row = train_data.get_row();
-
-                for (int f = 0; f < _k_2; f++) {
-                    _cache.at(i).at(f) = 0.0;
-                    for (auto it = row.begin(); it != row.end(); it++) {
-                        _cache.at(i).at(f) += _v.at(it->first).at(f)*it->second;
+            if (first_traverse) {
+                for (int i = 0; i < train_data.size(); ++i) {
+                    float y_hat = predict(train_data, i);
+                    _errors.at(i) = y_hat - (double)train_data.get_target(i);
+                    auto row = train_data.get_row(i);
+                    for (int f = 0; f < _k_2; f++) {
+                        _cache.at(i).at(f) = 0.0;
+                        for (auto it = row.begin(); it != row.end(); it++) {
+                            _cache.at(i).at(f) += _v.at(it->first).at(f)*it->second;
+                        }
                     }
                 }
+                first_traverse = false;
                 train_data.next_row();
             }
-            als_step(train_data, _errors_sum);
+            als_step(train_data);
         }
         std::cout << "iter=" << iteration << " ";
-        std::cout << "Train=" << evaluate(train_data) << " ";
-        std::cout << "Test=" << evaluate(test_data) << std::endl;
+        std::cout << "Train=" << evaluate(train_data, false) << " ";
+        std::cout << "Test=" << evaluate(test_data, true) << std::endl;
         return;
     }
 
@@ -90,12 +95,16 @@ public:
                 sum_of_squared += sum_element*sum_element;
             }
             y_hat += _linear_vx_sum.at(f)*_linear_vx_sum.at(f) - sum_of_squared;
+            /*if (_learning_method == ALS && first_traverse) {
+                _cache.at(i).at(f) = _linear_vx_sum.at(f);
+            }*/
         }
         y_hat *= 0.5;
 
         if (_k_0) {
             y_hat += _w_0;
         }
+
 
         if (_k_1) {
             for (auto it = row.begin(); it != row.end(); it++) {
@@ -106,8 +115,7 @@ public:
         if (_task_type == classification) {
 
         } else {
-            y_hat = std::max(y_hat, _min_target);
-            y_hat = std::min(y_hat, _max_target);
+
         }
         return y_hat;
     }
@@ -136,39 +144,80 @@ public:
         }
     }
 
-    void als_step(const Dataset &train_data, double _errors_sum) {
+    void als_step(const Dataset &train_data) {
+        double _errors_sum = 0.0;
+        for (int i = 0; i < train_data.size(); ++i) {
+            _errors_sum += _errors.at(i);
+        }
         double delta = -_w_0;
-        _w_0 = (_w_0 * train_data.size() + _errors_sum) / (train_data.size() + _reg_w0);
+        _w_0 = (_w_0 * train_data.size() - _errors_sum) / (train_data.size() + _reg_w0);
         delta += _w_0;
         for (int i = 0; i < train_data.size(); ++i) {
             _errors.at(i) += delta;
-        }
+         }
         for (int l = 0; l < _max_feature + 1; ++l) {
+            const std::vector <int> &valid_objects = train_data.get_feature_objects(l);
+            if (valid_objects.size() == 0) {
+                continue;
+            }
             double delta = -_w.at(l);
             double _w_l_star = 0.0;
             double x_l_square = 0.0;
-            const std::vector <int> &valid_objects = train_data.get_feature_objects(l);
             for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
                 const std::map<int, float> row = train_data.get_row();
                 auto element = row.find(l);
                 _w_l_star += element->second * (_w.at(l) * element->second - _errors.at(*it));
-                x_l_square += element->second*element->second;
+                x_l_square += element->second * element->second;
             }
-            _w_l_star /= x_l_square + _reg_w;
+            if (x_l_square > 0.0) {
+                _w_l_star /= x_l_square + _reg_w;
+            }
             delta += _w_l_star;
+            _w.at(l) = _w_l_star;
             for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
                 const std::map<int, float> row = train_data.get_row();
                 auto element = row.find(l);
                 _errors.at(*it) += delta * element->second;
             }
         }
+        for (int f = 0; f < _k_2; ++f) {
+            for (int l = 0; l < _max_feature + 1; ++l) {
+                const std::vector <int> &valid_objects = train_data.get_feature_objects(l);
+                if (valid_objects.size() == 0) {
+                    continue;
+                }
+                double delta = -_v.at(l).at(f);
+                double v_old = _v.at(l).at(f);
+                double _v_star = 0.0;
+                double h_square = 0.0;
+                for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
+                    const std::map<int, float> row = train_data.get_row(*it);
+                    auto element = row.find(l);
+                    double h = element->second * (_cache.at(*it).at(f) - _v.at(l).at(f) * element->second);
+                    _v_star += h * (_v.at(l).at(f) * h - _errors.at(*it));
+                    h_square += h * h;
+                }
+                _v_star /= (h_square + _reg_v);
+                delta += _v_star;
+                _v.at(l).at(f) = _v_star;
+                for (auto it = valid_objects.begin(); it != valid_objects.end(); ++it) {
+                    const std::map<int, float> row = train_data.get_row(*it);
+                    auto element = row.find(l);
+                    double h = element->second * (_cache.at(*it).at(f) - element->second * v_old);
+                    _errors.at(*it) += delta * h;
+                    _cache.at(*it).at(f) += delta * element->second;
+                }
+            }
+        }
     }
 
-    double evaluate(Dataset &data) {
+    double evaluate(const Dataset &data, bool to_print) {
         double error = 0.0;
-        for (int i = 0; i < data.size(); ++i) {
-            double y_hat = predict(data);
-            double target = (double) data.get_target();
+        for (int i = 0; i < data.size() - 1; ++i) {
+            float y_hat = predict(data, i);
+            y_hat = std::max(y_hat, _min_target);
+            y_hat = std::min(y_hat, _max_target);
+            double target = (double) data.get_target(i);
             if (_task_type == classification) {
                 //TODO: check that this function is the correct way to measure
                 error += -target*log(y_hat) - (1 - target)*log(1 - y_hat);
@@ -201,7 +250,7 @@ private:
     TaskType _task_type;
     bool _k_0 = true;
     bool _k_1 = true;
-    int _k_2 = 20;
+    int _k_2 = 4;
     double _w_0 = 0.0;
     int _max_feature;
     float _min_target;
@@ -214,4 +263,5 @@ private:
     std::vector<double> _linear_vx_sum;
     std::vector<double> _errors;
     std::vector<std::vector<double> > _cache;
+    bool first_traverse = true;
 };
