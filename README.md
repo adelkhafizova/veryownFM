@@ -8,9 +8,11 @@ It supports:
 * dense and sparse inputs
 * two optimization methods: stochastic gradient descent and alternating least-squares
 * classification/regression via logistic and mse loss functions
+* gradient clipping in SGD
 
-#Usage
+# Usage
 This is a command-line tool, CMakeLists is provided for building an executable from source code
+
 Command line arguments:
 * learning_rate: necessary for SGD, default 0.1
 * regularization_const: one or three values for each weights type (bias, linear and pairwise)
@@ -24,11 +26,12 @@ Command line arguments:
 * hash_random_seed: random seed of hashing
 * help: command-line arguments description
 
-#Example
+# Example
 ./FM --task_type regression --train_filename train.libfm --test_filename test.libfm --learning_method ALS
+
 ./FM --task_type classification --train_filename train.libfm --test_filename test.libfm --learning_rate 0.000001 --learning_method SGD
 
-#Tests
+# Tests
 The utility has been tested on the following datasets:
 * MovieLens
 * Avazu
