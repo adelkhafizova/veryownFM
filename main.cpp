@@ -7,7 +7,7 @@
 int main(int argc, const char *argv[]) {
     float learning_rate = 0.1;
     std::string regularization_const;
-    int iterations = 10;
+    int iterations = 20;
     learning_method method = SGD;
     std::string train_filename;
     std::string test_filename;
@@ -95,7 +95,6 @@ int main(int argc, const char *argv[]) {
     Dataset train_dataset(train_filename);
     Dataset test_dataset(test_filename);
     int max_feature = train_dataset.get_max_feature();
-    std::cout << learning_rate << std::endl;
     FactorizationMachine factorizationMachine(learning_rate, regularization_const,
                                               iterations, method, type, max_feature,
                                               train_dataset.get_max_target(),
