@@ -6,6 +6,7 @@
 
 int main(int argc, const char *argv[]) {
     float learning_rate = 0.1;
+
     std::string regularization_const;
     int iterations = 10;
     LearningMethod method = SGD;
@@ -17,6 +18,10 @@ int main(int argc, const char *argv[]) {
     bool use_linear = true;
     int pairwise_dim = 2;
     TaskType type;
+
+    int hash_size = -1;
+    int random_seed = 42;
+
     try {
         cxxopts::Options options("Factorization machines", "Library for using factorization algorithm");
         options
@@ -32,6 +37,8 @@ int main(int argc, const char *argv[]) {
                 ("e,test_filename", "Testing file name", cxxopts::value<std::string>())
                 ("o,out_filename", "Output file name", cxxopts::value<std::string>())
                 ("s,TaskType", "Task type parameter", cxxopts::value<std::string>())
+                ("hash_size", "positiv hash size if use hashing trick, else -1, default -1", cxxopts::value<int>())
+                ("hash_random_seed", "random seed of hashing", cxxopts::value<int>())
                 ("h,help", "Usage description");
         auto result = options.parse(argc, argv);
 
@@ -101,6 +108,13 @@ int main(int argc, const char *argv[]) {
                 }
             }
         }
+        if (result.count("hash_size")) {
+            hash_size = result["hash_size"].as<int>();
+        }
+        if (result.count("hash_random_seed")) {
+            random_seed = result["hash_random_seed"].as<int>();
+        }
+
     } catch (const cxxopts::OptionException &e) {
         std::cout << "error parsing options: " << e.what() << std::endl;
         exit(1);
@@ -108,16 +122,21 @@ int main(int argc, const char *argv[]) {
 
     Dataset *train_dataset;
     Dataset *test_dataset;
+
+    std::mt19937 generator(random_seed);
+
+    HashFunctionParams hash_params = HashFunctionParams(generator, hash_size);
+
     if (storage_type == memory){
-        train_dataset = new MemoryDataset(train_filename);;
-        test_dataset  = new MemoryDataset(test_filename);;
+        train_dataset = new MemoryDataset(train_filename, hash_params);;
+        test_dataset  = new MemoryDataset(test_filename, hash_params);;
     } else {
-        train_dataset = new IterDataset(train_filename);
-        test_dataset  = new IterDataset(test_filename);
+        train_dataset = new IterDataset(train_filename, hash_params);
+        test_dataset  = new IterDataset(test_filename, hash_params);
     }
 
     int max_feature = train_dataset->get_max_feature();
-    std::cout << learning_rate << std::endl;
+    std::cout << "Learning rate: " << learning_rate << std::endl;
     FactorizationMachine factorizationMachine(learning_rate, regularization_const,
                                               iterations, method, type, max_feature,
                                               train_dataset->get_max_target(),
