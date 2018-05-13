@@ -86,6 +86,9 @@ int main(int argc, const char *argv[]) {
         if (result.count("g")) {
             if (result["g"].as<std::string>() == "inplace") {
                 storage_type = inplace;
+                if (method == ALS) {
+                    throw cxxopts::OptionException("Unsupported data storage for ALS, memory only");
+                }
             } else {
                 if (result["g"].as<std::string>() == "memory") {
                     storage_type = memory;
@@ -113,6 +116,9 @@ int main(int argc, const char *argv[]) {
             } else {
                 if (result["s"].as<std::string>() == "classification") {
                     type = classification;
+                    if (method == ALS) {
+                        throw cxxopts::OptionException("Unsupported task type for ALS, regression only");
+                    }
                 } else {
                     throw cxxopts::OptionException("Bad task type definition");
                 }
