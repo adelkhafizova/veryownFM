@@ -58,13 +58,13 @@ int main(int argc, const char *argv[]) {
             learning_rate = result["l"].as<float>();
         }
         if (result.count("bias")) {
-            use_bias = result["bias"].as<float>();
+            use_bias = result["bias"].as<bool>();
         }
         if (result.count("linear")) {
-            use_linear = result["linear"].as<float>();
+            use_linear = result["linear"].as<bool>();
         }
         if (result.count("pairwise")) {
-            pairwise_rank = result["pairwise"].as<float>();
+            pairwise_rank = result["pairwise"].as<int>();
         }
         if (result.count("r")) {
             regularization_const = result["r"].as<std::string>();
