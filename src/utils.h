@@ -5,8 +5,6 @@
 #ifndef FM_UTILS_H
 #define FM_UTILS_H
 
-#endif //FM_UTILS_H
-
 #include <fstream>
 #include <climits>
 #include <random>
@@ -83,12 +81,12 @@ public:
     const std::vector<int> &get_feature_objects(int l) const;
 
 private:
-    unsigned long current_row_index = 0;
     std::vector<std::map<int, float>> _data;
     std::vector<float> _target;
     std::vector<std::vector<int>> _feature_objects;
     void set_row(const std::map<int, float> &current_row) override;
     void set_target(float current_target) override;
+    unsigned long current_row_index = 0;
 };
 
 
@@ -106,3 +104,5 @@ private:
     void set_row(const std::map<int, float> &current_row) override;
     void set_target(float current_target) override;
 };
+
+#endif //FM_UTILS_H

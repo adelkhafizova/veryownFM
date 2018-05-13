@@ -15,6 +15,9 @@ This is a command-line tool, CMakeLists is provided for building an executable f
 
 Command line arguments:
 * learning_rate: necessary for SGD, default 0.1
+* bias: whether to use bias or not, default 1 (true)
+* linear: whether to use linear terms or not, default 1 (true)
+* pairwise_rank: rank of inner representation for two-way interactions, default 8
 * regularization_const: one or three values for each weights type (bias, linear and pairwise)
 * iterations: number of iterations to be launched
 * learning_method: either SGD or ALS

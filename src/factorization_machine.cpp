@@ -8,8 +8,8 @@
 
 
 FactorizationMachine::FactorizationMachine(float lr, const std::string &reg_const, int num_iter,
-                                           const TaskType &type, int max_feature,
-                                           float max_target, float min_target) {
+                                           const TaskType &type, bool use_bias, bool use_linear, int pairwise_rank,
+                                           int max_feature, float max_target, float min_target) {
     _learning_rate = lr;
     if (reg_const.size()) {
         std::size_t found = reg_const.find(',');
@@ -33,6 +33,9 @@ FactorizationMachine::FactorizationMachine(float lr, const std::string &reg_cons
     _max_feature = max_feature;
     _max_target = max_target;
     _min_target = min_target;
+    _k_0 = use_bias;
+    _k_1 = use_linear;
+    _k_2 = pairwise_rank;
     _w = std::vector<double>(_max_feature + 1, 0.0);
     std::default_random_engine generator;
     std::normal_distribution<double> distribution(0.0,0.1);
@@ -53,9 +56,9 @@ void FactorizationMachine::launch_learning(Dataset *train_data, Dataset *test_da
     }
 }
 
-double FactorizationMachine::evaluate(const Dataset *data) {
+double FactorizationMachine::evaluate(Dataset *data) {
     double error = 0.0;
-    for (int i = 0; i < data->size() - 1; ++i) {
+    for (int i = 0; i < data->size(); ++i) {
         float y_hat = predict(data);
         y_hat = std::max(y_hat, _min_target);
         y_hat = std::min(y_hat, _max_target);
@@ -66,6 +69,7 @@ double FactorizationMachine::evaluate(const Dataset *data) {
         } else {
             error += pow(y_hat - target, 2);
         }
+        data->next_row();
     }
     if (_task_type == classification) {
         return error/data->size();

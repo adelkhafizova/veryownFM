@@ -4,9 +4,9 @@
 #include "fm_sgd.h"
 
 FactorizationMachineSGD::FactorizationMachineSGD(float lr, const std::string &reg_const, int num_iter,
-                                                 const TaskType &type, int max_feature, float max_target,
-                                                 float min_target) {
-    FactorizationMachine(lr, reg_const, num_iter, type, max_feature, max_target, min_target);
+                                                 const TaskType &type, bool use_bias, bool use_linear, int pairwise_rank,
+                                                 int max_feature, float max_target, float min_target):
+    FactorizationMachine(lr, reg_const, num_iter, type, use_bias, use_linear, pairwise_rank, max_feature, max_target, min_target) {
     _linear_vx_sum = std::vector<double> (_k_2, 0.0);
 }
 

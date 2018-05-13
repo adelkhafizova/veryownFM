@@ -5,23 +5,25 @@
 #ifndef FM_FACTORIZATION_MACHINE_H
 #define FM_FACTORIZATION_MACHINE_H
 
-#endif //FM_FACTORIZATION_MACHINE_H
 #include <random>
 #include <iostream>
+#include "utils.h"
 
 
 class FactorizationMachine {
 public:
     FactorizationMachine() = default;
     explicit FactorizationMachine(float lr, const std::string &reg_const, int num_iter,
-                                  const TaskType &type, int max_feature, float max_target, float min_target);;
+                                  const TaskType &type, bool use_bias, bool use_linear, int pairwise_rank,
+                                  int max_feature, float max_target, float min_target);;
 
     virtual void learn_step(Dataset *train_data) = 0;
     virtual double predict(const Dataset *data) = 0;
-    double evaluate(const Dataset *data);
+    double evaluate(Dataset *data);
     void launch_learning(Dataset *train_dat, Dataset *test_data);
+    virtual ~FactorizationMachine() = default;
 
-private:
+protected:
     float _learning_rate;
     int _iterations;
     TaskType _task_type;
@@ -37,8 +39,6 @@ private:
     double _reg_v = 0.0;
     std::vector<double> _w;
     std::vector<std::vector<double> > _v;
-    std::vector<double> _linear_vx_sum;
-    std::vector<double> _errors;
-    std::vector<std::vector<double> > _cache;
-    bool first_traverse = true;
 };
+
+#endif //FM_FACTORIZATION_MACHINE_H
