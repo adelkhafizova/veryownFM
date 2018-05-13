@@ -1,7 +1,10 @@
 #include <iostream>
+#include <random>
 #include "cxxopts/include/cxxopts.hpp"
 #include "src/utils.h"
 #include "src/factorization_machine.h"
+#include "src/fm_sgd.h"
+#include "src/fm_als.h"
 
 
 int main(int argc, const char *argv[]) {
@@ -16,7 +19,7 @@ int main(int argc, const char *argv[]) {
     std::string out_filename;
     bool use_bias = true;
     bool use_linear = true;
-    int pairwise_dim = 2;
+    int pairwise_rank = 4;
     TaskType type;
 
     int hash_size = -1;
@@ -29,17 +32,20 @@ int main(int argc, const char *argv[]) {
                 .show_positional_help();
         options.add_options()
                 ("l,learning_rate", "Learning rate value, default 0.1", cxxopts::value<float>())
+                ("bias", "Use bias or not", cxxopts::value<bool>())
+                ("linear", "Use linear or not", cxxopts::value<bool>())
+                ("pairwise", "Two-way interactions order", cxxopts::value<int>())
                 ("r,regularization_const", "Regularization constant, default 0", cxxopts::value<std::string>())
                 ("i,iterations", "Number of iterations, default 100", cxxopts::value<int>())
-                ("m,LearningMethod", "Learning method (SGD, ALS), default SGD", cxxopts::value<std::string>())
+                ("m,learning_method", "Learning method (SGD, ALS), default SGD", cxxopts::value<std::string>())
                 ("g,inplace", "Storage (inplace, memory), default memory", cxxopts::value<std::string>())
                 ("t,train_filename", "Training file name", cxxopts::value<std::string>())
                 ("e,test_filename", "Testing file name", cxxopts::value<std::string>())
-                ("o,out_filename", "Output file name", cxxopts::value<std::string>())
-                ("s,TaskType", "Task type parameter", cxxopts::value<std::string>())
-                ("hash_size", "positiv hash size if use hashing trick, else -1, default -1", cxxopts::value<int>())
-                ("hash_random_seed", "random seed of hashing", cxxopts::value<int>())
+                ("s,task_type", "Task type parameter", cxxopts::value<std::string>())
+                ("hash_size", "Positive hash size if use hashing trick, else -1, default -1", cxxopts::value<int>())
+                ("hash_random_seed", "Random seed of hashing", cxxopts::value<int>())
                 ("h,help", "Usage description");
+
         auto result = options.parse(argc, argv);
 
         if (result.count("help"))
@@ -50,6 +56,15 @@ int main(int argc, const char *argv[]) {
 
         if (result.count("l")) {
             learning_rate = result["l"].as<float>();
+        }
+        if (result.count("bias")) {
+            use_bias = result["bias"].as<float>();
+        }
+        if (result.count("linear")) {
+            use_linear = result["linear"].as<float>();
+        }
+        if (result.count("pairwise")) {
+            pairwise_rank = result["pairwise"].as<float>();
         }
         if (result.count("r")) {
             regularization_const = result["r"].as<std::string>();
@@ -92,11 +107,6 @@ int main(int argc, const char *argv[]) {
         } else {
             throw cxxopts::OptionException("No test file");
         }
-        if (result.count("o")) {
-            out_filename = result["o"].as<std::string>();
-        } else {
-            throw cxxopts::OptionException("No output file");
-        }
         if (result.count("s")) {
             if (result["s"].as<std::string>() == "regression") {
                 type = regression;
@@ -128,22 +138,31 @@ int main(int argc, const char *argv[]) {
     HashFunctionParams hash_params = HashFunctionParams(generator, hash_size);
 
     if (storage_type == memory){
-        train_dataset = new MemoryDataset(train_filename, hash_params);;
-        test_dataset  = new MemoryDataset(test_filename, hash_params);;
+        train_dataset = new MemoryDataset(train_filename, hash_params);
+        test_dataset  = new MemoryDataset(test_filename, hash_params);
     } else {
         train_dataset = new IterDataset(train_filename, hash_params);
         test_dataset  = new IterDataset(test_filename, hash_params);
     }
-
-    int max_feature = train_dataset->get_max_feature();
-    std::cout << "Learning rate: " << learning_rate << std::endl;
-    FactorizationMachine factorizationMachine(learning_rate, regularization_const,
-                                              iterations, method, type, max_feature,
-                                              train_dataset->get_max_target(),
-                                              train_dataset->get_min_target());
-
-    factorizationMachine.launch_learning(*train_dataset, *test_dataset);
+    FactorizationMachine *factorizationMachine;
+    if (method == SGD) {
+        factorizationMachine = new FactorizationMachineSGD(learning_rate, regularization_const,
+                                                           iterations, type, use_bias, use_linear, pairwise_rank,
+                                                           std::max(train_dataset->get_max_feature(),
+                                                                    test_dataset->get_max_feature()),
+                                                           train_dataset->get_max_target(),
+                                                           train_dataset->get_min_target());
+    } else {
+        factorizationMachine = new FactorizationMachineALS(learning_rate, regularization_const,
+                                                           iterations, type, use_bias, use_linear, pairwise_rank,
+                                                           std::max(train_dataset->get_max_feature(),
+                                                                    test_dataset->get_max_feature()),
+                                                           train_dataset->get_max_target(),
+                                                           train_dataset->get_min_target(), train_dataset->size());
+    }
+    factorizationMachine->launch_learning(train_dataset, test_dataset);
     delete train_dataset;
     delete test_dataset;
+    delete factorizationMachine;
     return 0;
 }
