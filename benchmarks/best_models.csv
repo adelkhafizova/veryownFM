@@ -1,0 +1,35 @@
+Dataset,Model,RMSE,Time (sec)
+ml-1m-norm,FM – SGD (5 passes),1.186,121
+ml-1m-norm,Pairwise FM – SGD (5 passes),1.186,255
+ml-1m-norm,FM – ALS (5 passes),0.911,165
+ml-1m-norm,Pairwise FM – ALS (5 passes),0.912,859
+ml-1m-norm,VW SGD (10 passes),1.149,10
+ml-1m-norm,VW SGD (80 passes),1.122,62
+ml-1m-norm,VW (5 passes),1.068,6
+ml-1m-norm,VW (80 passes),0.944,72
+ml-1m,FM – SGD (5 passes),1.006,113
+ml-1m,Pairwise FM – SGD (5 passes),1.02,214
+ml-1m,FM – SGD (10 passes),1.029,230
+ml-1m,Pairwise FM – SGD (10 passes),0.997,389
+ml-1m,FM – ALS (2 passes),0.911,75
+ml-1m,Pairwise FM – ALS (5 passes),0.889,781
+ml-1m,VW SGD (10 passes),1.139,10
+ml-1m,VW SGD (80 passes),1.115,71
+ml-10m,FM – SGD (5 passes),1.051,719
+ml-10m,Pairwise FM – SGD (5 passes),1.056,1147
+ml-10m,"FM – ALS (5 passes, HT)",0.948,780
+ml-10m,"FM – ALS (10 passes, HT)",0.945,1497
+ml-10m,FM – ALS (5 passes),0.889,867
+ml-10m,"Pairwise FM – ALS (5 passes, HT)",0.919,4485
+ml-10m,Pairwise FM – ALS (5 passes),0.852,3380
+ml-10m,VW SGD (10 passes),1.073,103
+ml-10m,VW (5 passes),0.987,71
+ml-10m,VW (10 passes),0.959,107
+ml-10m,VW (80 passes),0.909,728
+ml-20m,,,
+ml-20m,,,
+ml-20m,,,
+ml-20m,,,
+ml-20m,,,
+ml-20m,,,
+ml-20m,,,
