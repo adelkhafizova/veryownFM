@@ -26,10 +26,9 @@ ml-10m,VW SGD (10 passes),1.073,103
 ml-10m,VW (5 passes),0.987,71
 ml-10m,VW (10 passes),0.959,107
 ml-10m,VW (80 passes),0.909,728
-ml-20m,,,
-ml-20m,,,
-ml-20m,,,
-ml-20m,,,
-ml-20m,,,
-ml-20m,,,
-ml-20m,,,
+ml-20m,FM – SGD (5 passes),1.012,1459
+ml-20m,Pairwise FM – SGD (5 passes),1.005,2324
+ml-20m,"FM – ALS (1 passes, HT)",0.937,17246
+ml-20m,VW (5 passes),0.899,147
+ml-20m,VW (10 passes),0.88,227
+ml-20m,VW (80 passes),0.861,932
