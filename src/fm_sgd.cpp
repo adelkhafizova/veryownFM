@@ -17,7 +17,7 @@ void FactorizationMachineSGD::learn_step(Dataset *train_data) {
         auto row = train_data->get_row();
         double coefficient = 0;
         if (_task_type == classification) {
-            coefficient = (1 / (1 + exp(target * y_hat)) - 1) * target;
+            coefficient = (1 / (1 + exp(-target * y_hat)) - 1) * target;
         } else {
             coefficient = (y_hat - target);
         }
@@ -27,7 +27,7 @@ void FactorizationMachineSGD::learn_step(Dataset *train_data) {
 }
 
 double FactorizationMachineSGD::predict(Dataset const *data) {
-    float y_hat = 0.0;
+    double y_hat = 0.0;
     const std::map<int, float> row = data->get_row();
 
     for (int f = 0; f < _k_2; f++) {
@@ -52,6 +52,9 @@ double FactorizationMachineSGD::predict(Dataset const *data) {
             y_hat += _w.at(it->first)*it->second;
         }
     }
+    if (_task_type == classification) {
+        y_hat = 1.0 / (1.0 + exp(-y_hat));
+    }
     return y_hat;
 }
 
@@ -60,8 +63,8 @@ void FactorizationMachineSGD::sgd_step(const std::map<int, float> &row, double c
         for (auto it = row.begin(); it != row.end(); it++) {
             double grad = coefficient;
             grad *= it->second*(_linear_vx_sum.at(f) - _v.at(it->first).at(f)*it->second);
-            grad = std::min(grad, 5.0);
-            grad = std::max(grad, -5.0);
+            grad = std::min(grad, 5.);
+            grad = std::max(grad, -5.);
             _v.at(it->first).at(f) -= _learning_rate*(grad + 2*_reg_v*_v.at(it->first).at(f));
         }
     }

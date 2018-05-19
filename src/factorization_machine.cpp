@@ -65,14 +65,14 @@ double FactorizationMachine::evaluate(Dataset *data) {
         double target = (double) data->get_target();
         if (_task_type == classification) {
             //TODO: check that this function is the correct way to measure
-            error += -target*log(y_hat) - (1 - target)*log(1 - y_hat);
+            error += -target * log(y_hat + 1e-9) - (1 - target) * log(1 - y_hat + 1e-9);
         } else {
             error += pow(y_hat - target, 2);
         }
         data->next_row();
     }
     if (_task_type == classification) {
-        return error/data->size();
+        return error / data->size();
     } else {
         return sqrt(error/data->size());
     }
