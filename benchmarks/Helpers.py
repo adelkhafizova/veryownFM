@@ -14,17 +14,23 @@ from sklearn.metrics import roc_auc_score, mean_squared_error
 
 dtypes = {
     'user':   'uint32',
-    'movie':  'uint16',
-    'rating': 'uint8'
+    'movie':  'uint32',
+    'rating': 'float16'
 }
 
 # построение различных признаков для movielens
 def build_movielens(folder, test_size, with_genres=True, with_users_info=True, with_rated_movies=True):
     print('load ratings....')
     rating_path = [name for name in os.listdir(folder) if 'ratings' in name][0]
-    ratings = pd.read_csv(folder + rating_path, sep='::', header=None, engine='python',
-                          names=['user', 'movie', 'rating', 'timestamp'], dtype=dtypes)
-
+    if 'csv' in rating_path:
+        ratings = pd.read_csv(folder + rating_path, sep=',', header=0, dtype=dtypes,
+                      names=['user', 'movie', 'rating', 'timestamp'])
+        ratings['rating'] = (ratings['rating'] + 0.5).astype('int8')
+    else:
+        ratings = pd.read_csv(folder + rating_path, sep='::', header=None, engine='python',
+                              names=['user', 'movie', 'rating', 'timestamp'], dtype=dtypes)
+    ratings.rating = ratings.rating.astype('int8')
+    
     print('calculation of monthes....')
     ratings['timestamp'] = pd.to_datetime(ratings.timestamp, unit='s')
     min_date = ratings.timestamp.min()
@@ -34,12 +40,17 @@ def build_movielens(folder, test_size, with_genres=True, with_users_info=True, w
     dataset = ratings.drop('timestamp', 1)
     del(ratings); gc.collect()
     
-    if with_genres and 'movies.dat' in os.listdir(folder):
+    if with_genres:
         print('load movies....')
         movie_path = [name for name in os.listdir(folder) if 'movies' in name][0]
-        movies = pd.read_csv(folder + movie_path, sep='::', engine='python',
-                             names=['movie', 'title', 'genres'], 
-                             usecols=['movie', 'genres'], header=None, dtype=dtypes)
+        if 'csv' in movie_path:
+            movies = pd.read_csv(folder + movie_path, sep=',', header=0,
+                                 names=['movie', 'title', 'genres'], 
+                                 usecols=['movie', 'genres'], dtype=dtypes)
+        else:
+            movies = pd.read_csv(folder + movie_path, sep='::', engine='python',
+                                 names=['movie', 'title', 'genres'], 
+                                 usecols=['movie', 'genres'], header=None, dtype=dtypes)
 
         print('build genres ohe....')
         sparse_genres = CountVectorizer().fit_transform(movies.genres.map(lambda x: x.replace('|', ' ')))
@@ -182,11 +193,11 @@ def fm_extractor(row, field_info, with_normalization=False, with_user_features=F
 
 
 ### Сonversion between vw/fm and regression/classification
-def fm2vw(infile, outfile):    
+def fm2vw(infile, outfile, split_pos=1):    
     input_file = open(infile,  'r')
     out_file   = open(outfile, 'w')
     for line in tqdm(input_file):
-        out_file.write(line[0] + ' |' + line[1:])
+        out_file.write(line[:split_pos] + ' |' + line[split_pos:])
 
 def reg2fm(infile, outfile):    
     input_file = open(infile,  'r')
@@ -201,7 +212,15 @@ def reg2vw(infile, outfile):
     for line in tqdm(input_file):
         target = str((int(line[0]) > 3) * 2 - 1)
         out_file.write(target + ' |' + line[1:])
-     
+        
+def target_transform(infile, outfile):    
+    input_file = open(infile,  'r')
+    out_file   = open(outfile, 'w')
+    for line in tqdm(input_file):
+        sym_shift = 2 if line[1] == '0' else 1  
+        target = str((int(line[:sym_shift]) + 1) / 2) + ' '
+        out_file.write(target + line[sym_shift:])     
+    
     
 ### Функции, позволяющие оценить те или иные метрики, не загружаю в память таблички
 def get_rmse(ytest_input='ytest', pred_input='pred'):
@@ -230,6 +249,7 @@ def get_log_loss(ytest_input='ytest', pred_input='pred'):
         n+=1        
         true_label = int(label)
         pred_score = float(pred)
+        pred_score = 1 / (1 + np.exp(-pred_score))
         loss -= true_label * np.log(pred_score) + (1 - true_label) * np.log(1 - pred_score) 
         
     reader_ytest.close()
